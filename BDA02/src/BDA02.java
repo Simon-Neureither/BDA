@@ -1,6 +1,5 @@
 import java.io.IOException;
 import java.util.StringTokenizer;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -28,9 +27,7 @@ public class BDA02 {
 				// Line
 				String line = itr.nextToken();
 				
-				StringTokenizer tok =  new StringTokenizer(line, " ");
-				
-				
+				StringTokenizer tok =  new StringTokenizer(line, " ");	
 				
 			}
 			/*
