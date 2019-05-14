@@ -1,36 +1,101 @@
 import scala.collection.mutable.ListBuffer
 
-class Possibilities() {
-  var field = scala.collection.mutable.Map[Int, scala.collection.mutable.ListBuffer[Int]]();
+class Possibility() {
+  //var field = scala.collection.mutable.Map[Int, scala.collection.mutable.ListBuffer[Int]]();
   
-  def set(x : Int, y : Int)
+  var field = scala.collection.mutable.ListBuffer[Int]();
+  
+  def set(n : Int) =
   {
-    field(x) += y;
+    field += n;
   }
   
-  def del(x : Int, y : Int)
+  def reset(n : Int) = 
   {
-    field(x) -= y;
+    field -= n;
   }
   
-  def num(x : Int)
+  def number() =
   {
-    field(x).size;
+    field.size;
   }
+  
+  def get() : ListBuffer[Int] = {
+    field;
+  }
+}
+
+class BestPossibility() extends Possibility
+{
+  var x : Int = 0;
+  var y : Int = 0;
+  
+  def setXY(x_ : Int, y_ : Int) =
+  {
+    x = x_;
+    y = y_;
+  }
+}
+
+class Possibilities()
+{  
+  val field = scala.collection.mutable.Map[Int, Possibility]();
+  
+  def init(x : Int, y : Int)
+  {
+    val idx = x + y * 9;
+    
+    if (!field.contains(idx))
+      field(idx) = new Possibility;
+  }
+  
+  def set(x : Int, y : Int, n : Int)
+  {
+    val idx = x + y * 9;
+    init(x,y);
+    
+    field(idx).set(n);
+  }
+  
+  def remove(x : Int, y : Int, n : Int)
+  {
+    val idx = x + y * 9;
+    init(x,y);
+    
+    field(idx).reset(n);
+  }
+  
+  def getLeast() : BestPossibility =
+  {
+    var best : BestPossibility = null;
+    for ((idx, possibility) <- field)
+    {
+      if (best == null || best.number() > possibility.number())
+      {
+        best = new BestPossibility;
+        best.field = possibility.field;
+        best.y = idx / 9;
+        best.x = idx - best.y * 9;
+      }
+    }
+    
+    best;
+  }
+  
 }
 
 class Field() {
   
   var field = ListBuffer(
-      ListBuffer(0,2,3,4,5,6,7,8,0),
-      ListBuffer(0,0,0,0,0,0,0,0,0),
-      ListBuffer(0,4,0,0,0,0,0,0,0),
-      ListBuffer(0,5,0,0,0,0,0,0,0),
-      ListBuffer(0,6,0,0,0,0,0,0,0),
-      ListBuffer(0,7,0,0,0,0,0,0,0),
-      ListBuffer(0,8,0,0,0,0,0,0,0),
-      ListBuffer(0,9,0,0,0,0,0,0,0),
-      ListBuffer(0,0,0,0,0,0,0,0,0)
+      ListBuffer(8,7,6,9,0,0,0,0,0),
+      ListBuffer(0,1,0,0,0,6,0,0,0),
+      ListBuffer(0,4,0,3,0,5,8,0,0),
+      ListBuffer(4,0,0,0,0,0,2,1,0),
+      ListBuffer(0,9,0,5,0,0,0,0,0),
+      ListBuffer(0,5,0,0,4,0,3,0,6),
+      ListBuffer(0,2,9,0,0,0,0,0,8),
+      ListBuffer(0,0,4,6,9,0,1,7,3),
+      ListBuffer(0,0,0,0,0,1,0,0,4)
   )
   
   override def toString = {
@@ -123,6 +188,155 @@ class Field() {
     field(x)(y) = n;
   }
   
+  def solve_one_step_ : Field = {
+    var f = copy;
+    
+    var solved = false;
+    for (x <- 0 to 8)
+      for (y <- 0 to 8)
+      {
+        var allowed = if (get(x,y) != 0) ListBuffer() else getAllowed(x, y);
+        if (allowed.size == 1 && !solved)
+        {
+          solved = true;
+          f.set(x,y, allowed(0));
+          f = f.solve;
+        }
+      }
+    
+    if (!solved)
+      f = null;
+    
+    f;
+  }
+  
+  def is_finished : Boolean =
+  {
+    for (x <- 0 to 8)
+      for (y <- 0 to 8)
+      {
+        if (get(x,y) == 0)
+          return false;
+      }
+    
+    true;
+  }
+  
+  
+  def solve_one_step_in = {
+    var found = true;
+    while (found)
+    {
+      found = false;
+      for (x <- 0 to 8)
+        for (y <- 0 to 8)
+        {
+          var allowed = if (get(x,y) != 0) ListBuffer() else getAllowed(x, y);
+          if (allowed.size == 1)
+          {
+            this.set(x,y, allowed(0));
+            found = true;
+          }
+        }
+    }
+    
+  }
+  
+  def solve_one_step : Field = {
+    var f = copy;
+    
+    
+    var solved = false;
+    var fields = new ListBuffer[Field];
+   // fields += f;
+    
+    f.solve_one_step_in;
+    
+    var possibilities = f.make_possibilities;
+    
+    if (f.is_finished)
+      return f;
+    
+    if (possibilities == null || possibilities.getLeast() == null)
+      return null;
+    
+    
+    var possibility = possibilities.getLeast();
+    if (possibility == null)
+    {
+      var x = 3;
+      x += 1;
+    }
+    for (i <- 0 to possibility.number() - 1)
+    {
+      var field = copy;
+      field.set(possibility.x, possibility.y, possibility.get()(i));
+      fields += field;
+    }
+    
+    for (i <- 0 to fields.size - 1)
+    {
+      var field = fields(i);
+      if (field != null)
+      {
+        System.out.println("Trying to solve field:\r\n" + field);
+        field = field.solve_one_step;
+        
+        if (field != null && field.is_finished)
+          return field;
+        else if (field != null)
+        {
+          System.out.println("Failed solving field:\r\n" + field);
+        }
+      }
+    }
+    
+    null;
+  }
+  
+  
+  def is_solved : Boolean = {
+    var solved = true;
+     for (x <- 0 to 8)
+      for (y <- 0 to 8)
+      {
+        if (get(x, y) == 0)
+        {
+          solved = false;
+        }
+      }
+     
+     solved;
+  }
+  
+  
+  def make_possibilities : Possibilities =
+  {
+    var possibilities = new Possibilities;
+    
+    System.out.println(is_finished);
+    
+    for (x <- 0 to 8)
+      for (y <- 0 to 8)
+      {
+        var c = get(x,y);
+        if (c == 0) 
+        {
+          val buffer = getAllowed(x, y);
+          if (buffer.size == 0)
+          {
+            return null;
+          }
+          else
+          {
+            for (n <- 0 to buffer.size - 1)
+              possibilities.set(x, y, buffer(n));
+          }
+        }
+      }
+    possibilities;
+  }
+  
   
   def solve : Field = {
     
@@ -131,25 +345,25 @@ class Field() {
     
     var idx = 0;
     
-    var solved = false;
-   // while (solved)
+    var last_stable = copy;
+    var current = copy;
+    
+    /*
+    while (current != null && !current.is_finished)
     {
-     // solved = false;
-      for (x <- 0 to 8)
-        for (y <- 0 to 8)
-        {
-          var allowed = if (get(x,y) != 0) ListBuffer() else getAllowed(x, y);
-          if (allowed.size == 1 && !solved)
-          {
-            solved = true;
-            f.set(x,y, allowed(0));
-            
-            f = f.solve;
-          }
-        }
+      last_stable = current;
+      current = last_stable.solve_one_step;
     }
+    System.out.println("LAST STABLE");
+    System.out.println(current);
+    last_stable;
+    */
+    
+    
+    current.solve_one_step;
+    
+    
      
-    f;
     
   }
   
@@ -176,9 +390,7 @@ object ScalaExample{
       var f = new Field();
       
       var f2 = f.solve
-      
-      println(f.getAllowed(0, 0).toString());
-      
+            
       println(f.toString());
       println(f2.toString());
       
