@@ -1,4 +1,6 @@
 package bda03.sudoku.gui
+import scala.io.Source
+import scala.util.Random
 
 // Zeilenweises auslesen
 class Board(val cells: Array[Cell]) {
